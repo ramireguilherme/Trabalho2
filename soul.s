@@ -12,26 +12,49 @@ int_handler:
     sw t1, 32(a6)
     sw t2, 36(a6)
 
+    li t1,0xFFFF0104 
+    li t0,1  # t1 = 
+    beq t0, t1, GPT; # if t0 == t1 then target
+    
 
     li t1, 16
     beq a7, t1, ultrassom; # if t0 == t1 then target
+    li t1,17
+    beq a7,t1,servo_angles
     li t1, 18 # t1 = 
-    beq a7, t1,set_engine_torque 
+    beq a7, t1,engine_torque
+    li t1,19  # t1 = 
+    beq a7, t1, gps
     li t1, 20 # t1 =20 
-    beq a7, t1, read_gyroscope; # if t0 == t1 then target
+    beq a7, t1, gyroscope; # if t0 == t1 then target
+    li t1,21
+    beq a7,t1,get_time
+    li t1,22  # t1 = 
+    beq a7,t1,set_time
+    li t1, 64
+    beq a7,t1,write
 
-    
-GPT:
+GPT: #a terminar
+    la t1, sys_time # 
+    lw t0, 0(t1) 
+    addi t0, t0, 100; # t0 = t1 + imm
+    sw t0, 0(t1)  
+        
     li t1, 0xFFFF0100 # t1 = 
-    li t0, 1 # t1 = 
-    sw t0, 0(t1) 
+    li t0, 100 # t1 = 
+    sw t0, 0(t1)
+    
+    li t1,0xFFFF0104  # t1 = 
+    sw zero, 0(t1) # 
+    
+
 ultrassom: #ultrassom feito
     li t1, 0xFFFF0020 # t1 = 
-    sw zero, 0(t1) # 
+    sw zero, 0(t1)  
     loopultrassom:
         lw t0, 0(t1) # 
         beq t0, zero, loopultrassom; # if t0 == t1 then target
-    li a1, 0xFFFF0024# a1 = 
+    li a1, 0xFFFF0024 
     lw a0, 0(a1) # 
     j restaurar_contexto
 servo_angles:
@@ -45,18 +68,45 @@ servo_angles:
     j end_of_servo_sys
     validservo:
         li t0, 360
-        ble t0, a0, # if t0 <= t1 then target
-        
+        ble t0, a1, v1 # if t0 <= t1 then target
+        li a0,-1
+        j end_of_servo_sys
+        v1:
+            bge a1, zero,  # if t0 >= t1 then target
+            li a0,-1  # t1 = 
+            j end_of_servo_sys
+                valid_angle:
+                    li t1, 1# t1 = 
+                    beq a0, t1,servo1 # if t0 == t1 then target
+                    li t1, 2 # t1 = 
+                    beq a0, t1, servo2; # if t0 == t1 then target
+                    j servo3                    
+                    servo1:
+                        li t0,0xFFFF001E  # t1 = 
+                        sw a1,0(t0)
+                        li a0, 0 # t1 = 
+                        j end_of_servo_sys  # jump to end_o
+                    servo2:
+                        li t0,0xFFFF001D  # t1 = 
+                        sw a1, 0(t0) # 
+                        li a0, 0 # t1 = 
+                        j end_of_servo_sys  # jump to en
+                    servo3:
+                        li t0,0xFFFF001C  # t1 = 
+                        sw a1, 0(t0) # 
+                        li a0,0  # t1 = 
+                        j end_of_servo_sys  # jump to target
+                        
     end_of_servo_sys:
         j restaurar_contexto
-set_engine_torque:
+engine_torque:
     #ve se a0 eh igual a 0 ou 1
     li t1, 0 # t1 =0 
     beq a0, t1, c # if t0 == t1 then target
     li t1, 1  # t1 = 
     beq a0,t1,c
     li a0,-1  # t1 = 
-    mret#tenq restaurar o contexto
+    
     motor1:
         li t1, 0xFFFF001A # t1 = 
         sw a1, 0(t1) # 
@@ -70,11 +120,13 @@ set_engine_torque:
         li a0, 0 # a0 =0 
         j restaurar_contexto
         
-read_gyroscope:
+gyroscope:
     li t1, 0xFFFF0004 # t1 =
-    li t2,1  # t1 = 
-    sw t2, 0(t1) #
-    li t1, 0xFFFF0014 # t1 = 
+    sw zero, 0(t1) 
+    loopgyro:
+        lw t0, 0(t1) # 
+        beq t0, zero, loopgyro
+    li t1, 0xFFFF0014 
     lw t2, 0(t1) 
     addi t0, t2, zero; # t0 = t1 + imm
     srli t0, t0 , 20 #shiftando o x   
@@ -90,9 +142,32 @@ read_gyroscope:
     addi t0, t2, zero; # t0 = t1 + imm
     sw t1, 0(s1) # 
 gps:
+    li t0,0xFFFF0004
+    sw zero, 0(t0)
+    loopgps:
+        lw t1, 0(t0) 
+        beq zero, t1,loopgps
+    li t1,0xFFFF0008
+    lw t0, 0(t1) 
+    sw t0, 0(a0) # 
+    li t1, 0xFFFF000C
+    lw t0, 0(t1) # 
+    sw t0, 4(a0) # 
+    li t1,0xFFFF0010
+    lw t0, 0(t1) 
+    sw t0, 8(a0)
+    j restaurar_contexto    
+get_time:
+    la t1, sys_time # 
+    lw a0, 0(t1) # 
+    j restaurar_contexto  # jump to restaurar_c
+
+set_time:
+    la t1, sys_time
+    sw a0, 0(t1) # 
+    j restaurar_contexto  # jump to 
     
-
-
+    
 restaurar_contexto:
     lw a1, 0(a6) # 
     lw a2, 4(a6) # 
@@ -158,3 +233,6 @@ _start:
 s_stack_end:
 .comm user_stack, 80000,4
 u_stack_end:
+
+sys_time:
+    .word 0
