@@ -1,20 +1,26 @@
 .globl _start
+#to do:
+    # empilhar a porra toda
+    # copiar o slide do borin do setup do tratador
+    # terminar o write
+    # terminar o bixo
+
 int_handler:
     csrrw a6, mscratch, a6
-    sw a1, 0(a6) # 
-    sw a2, 4(a6) # 
-    sw a3, 8(a6) # 
-    sw a4, 12(a6)
-    sw a5, 16(a6)
-    sw a6, 20(a6)
+    sw a0, 0(s1) # 
+    sw a1, 4(a6) # 
+    sw a2, 8(a6) # 
+    sw a3, 12(a6) # 
+    sw a4, 16(a6)
+    sw a5, 20(a6)
     sw a7, 24(a6)
     sw t0, 28(a6)
     sw t1, 32(a6)
     sw t2, 36(a6)
+    sw t3, 40(a6)
 
-    li t1,0xFFFF0104 
-    li t0,1  # t1 = 
-    beq t0, t1, GPT; # if t0 == t1 then target
+    csrr t0, mcause
+    blt t0, zero, GPT # if t0 <= t1 then target
 
 
     li t1, 16
@@ -35,6 +41,10 @@ int_handler:
     beq a7,t1,write
 
 GPT: #a terminar
+    li t1,0xFFFF0104 
+    li t1,0(t1) 
+    beq zero, t1,gpt_restore; # if t0 == t1 then target
+
     la t1, sys_time # 
     lw t0, 0(t1) 
     addi t0, t0, 100; # t0 = t1 + imm
@@ -43,9 +53,6 @@ GPT: #a terminar
     li t1, 0xFFFF0100 # t1 = 
     li t0, 100 # t1 = 
     sw t0, 0(t1)
-    
-    li t1,0xFFFF0104  # t1 = 
-    sw zero, 0(t1) # 
     
 
 ultrassom: #ultrassom feito
@@ -108,7 +115,7 @@ servo_angles:
         j restaurar_contexto_sem_a0  # jump to target
     end_of_servo_sys:
         j restaurar_contexto_sem_a0
-engine_torque:
+engine_torque: 
     beq a0, zero, motor0 # if t0 == t1 then target
     li t1, 1  # t1 = 
     beq a0,t1,motor1
@@ -174,34 +181,65 @@ set_time:
     sw a0, 0(t1) # 
     j restaurar_contexto  # jump to 
     
-    
+write: #to-do
 restaurar_contexto_sem_a0:
-    lw a1, 0(a6) # 
-    lw a2, 4(a6) # 
+    lw a1, 0(a6)  
+    lw a2, 4(a6)  
     lw a3, 8(a6)
     lw a4, 12(a6)
     lw a5, 16(a6)
-    lw a6, 20(a6)
-    lw a7, 24(a6)
+    lw a7, 20(a6)
+    lw t0, 24(a6)
     lw t1, 28(a6)
     lw t2 , 32(a6)
 
+    csrr t0, mepc
+    addi t0, t0, 4; # t0 = t1 + imm
+    csrr mepc,t0
+
+    csrrw a6, mscratch,a6
+    mret
+
+restaurar_contexto:
+    lw a0 ,0(a6)
+    lw a1, 4(a6) # 
+    lw a2, 8(a6) # 
+    lw a3, 12(a6)
+    lw a4, 16(a6)
+    lw a5, 20(a6)
+    lw a7, 24(a6)
+    lw t0, 28(a6)
+    lw t1, 32(a6)
+    lw t2 , 36(a6)
+    
     csrr t0, mepc
     addi t0, t0, 4; # t0 = t1 + imm
     
     csrrw a6, mscratch,a6
     mret
 
-restaurar_contexto:
-    lw a1, 0(a6)
+gpt_restore:
+    lw a0 ,0(a6)
+    lw a1, 4(a6) # 
+    lw a2, 8(a6) # 
+    lw a3, 12(a6)
+    lw a4, 16(a6)
+    lw a5, 20(a6)
+    lw a7, 24(a6)
+    lw t0, 28(a6)
+    lw t1, 32(a6)
+    lw t2 , 36(a6) 
     
+    li t1,0xFFFF0104  # t1 = 
+    sw zero, 0(t1) # 
+    
+    csrrw a6, mscratch,a6
+    mret
+
 _start:
     #interrupcoes
     la t1, system_stack
     csrw mscratch, t1  # 
-
-    la t1,  # 
-    sw t1, 0(s1) # 
     
     la t0,int_handler #
     csrw mtvec, t0
@@ -215,16 +253,21 @@ _start:
     or t1,t1,t2
     csrw mie, t1
 
+    la t1, system_stack 
+    csrw mscratch,t1
+    li sp, 100000000 
     #modo usuario 
     csrr t1,mstatus
     li t2, ~0x1800
     and t1,t1,t2
-    
+    csrw mstatus,t1
+    la t0,user_stack
+    csrw mepc,t0
+    mret
     #configurando o GPT
     li t1, 0xFFFF0100 # t1 = 
     li t0, 100 # t1 = 
     sw t0, 0(t1) # 
-    
     
     #configurando os torques pra 0
     li t1, 0xFFFF0018 # t1 = 
@@ -247,9 +290,19 @@ _start:
     sw t0, 0(t1) #
     
     #
-    j main  # jump to target
+
+user:
+    li sp,0x7FFFFFC
+    addi sp, sp, 4; # t0 = t1 + imm
+    sw ra, 0(sp) # 
+    jal main  # jump to target
+    lw ra, 0(sp) # 
+    addi sp, sp, -4; # t0 = t1 + imm
     
-.comm system_stack,100000,4
+
+    
+
+system_stack: .skip 200
 s_stack_end:
 .comm user_stack, 80000,4
 u_stack_end:
