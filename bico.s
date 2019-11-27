@@ -1,23 +1,42 @@
+.globl set_torque
+.globl set_engine_torque
+.globl get_us_distance
+.globl set_head_servo
+.globl get_current_GPS_position
+.globl read_gyro_angles
+.globl get_time
+.globl set_time
+.globl puts
+
 set_torque:
     li t1,100  # t1 = 
     bltu t1, a0, invalid_torque
     bltu t1 ,a1,invalid_torque
-    
+    mv t1,a0
+    mv t2,a1 
+    li a0,0
+    mv a1,t1 
+    li a7,18 # t1 = 
+    ecall
+    li a0,1  # t1 = 
+    mv a1,t2
+    ecall
     ret
+
     invalid_torque:
         li a0,-1  # t1 = 
         ret
 
+set_engine_torque:
+    li a7, 18
+    ecall   
+    ret
 get_us_distance:
     li a7, 16
     ecall
     ret
 set_head_servo:
     li a7, 17 # t1 = 
-    ecall
-    ret
-set_engine_torque:
-    li a7, 18
     ecall
     ret
 get_current_GPS_position:
@@ -55,5 +74,3 @@ puts:
     li a7, 64 # a7 = 64 
     ecall
     ret   
-
-
