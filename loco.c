@@ -22,37 +22,6 @@ typedef struct{
 
 coordenadas_i* coordi;
 
-typedef struct{
-    int x1;
-    int z1;
-    int x2;
-    int z2;
-    int x3;
-    int z3;
-    int x4;
-    int z4;
-    int x5;
-    int z5;
-} caminho_amigo;
-
-typedef struct{
-    int xi1;
-    int zi1;
-    int xi2;
-    int zi2;
-    int xi3;
-    int zi3;
-    int xi4;
-    int zi4;
-    int xi5;
-    int zi5;
-} caminho_inimigo;
-
-
-caminho_amigo* CA;
-caminho_inimigo* CI;
-
-
 int main(){
         while (cfim < 5){
             get_current_GPS_position(pos);
@@ -161,9 +130,9 @@ void corrige_caminho(){
 
     arco = arco*57,2958;
 
-    while (angles->x - arco > 2 || angles->x - arco < -2){
+    while (angles->y - arco > 5 || angles->y - arco < -5){
         get_gyro_angles(angles);
-        set_torque(0, 20);
+        set_torque(0, 10);
     }
     
     set_torque(40, 40);
@@ -172,7 +141,7 @@ void corrige_caminho(){
     distancia = distancia_amigo(pos, friends_locations);
     while(get_time() < 5000){
         if (distancia < distancia_amigo(pos, friends_locations)){
-            set_torque(0, 20);
+            set_torque(0, 10);
             break;
         }
     }
@@ -200,9 +169,9 @@ void corrige_caminho(){
 
     arco = arco*57,2958;
 
-    while (angles->x - arco > 2 || angles->x - arco < -2){
+    while (angles->y - arco > 5 || angles->y - arco < -5){
         get_gyro_angles(angles);
-        set_torque(0, 20);
+        set_torque(0, 10);
     }
     set_torque(40, 40);
 }
@@ -289,9 +258,9 @@ void evita_inimigo(Vector3* pos, Vector3 inimigo[]){
     arco = arco*57,2958;
     
     
-    while ((angles->x - arco < 88 && angles->x - arco >= 0) || (angles->x - arco > 92 && angles->x - arco >=0) || (angles->x - arco > -88 && angles->x - arco < 0) || (angles->x - arco < -92 && angles->x - arco < 0) ){
+    while ((angles->y - arco < 88 && angles->y - arco >= 0) || (angles->y - arco > 92 && angles->y - arco >=0) || (angles->y - arco > -88 && angles->y - arco < 0) || (angles->y - arco < -92 && angles->y - arco < 0) ){
         get_gyro_angles(angles);
-        set_torque(0, 20);
+        set_torque(0, 10);
     }
 
     set_torque(40, 40);
